@@ -1,0 +1,48 @@
+train: train/images
+val: valid/images
+test: test/images
+nc: 36
+names:
+- A
+- B
+- C
+- D
+- E
+- Eight
+- F
+- Five
+- Four
+- G
+- H
+- I
+- J
+- K
+- L
+- M
+- N
+- Nine
+- O
+- One
+- P
+- Q
+- R
+- S
+- Seven
+- Six
+- T
+- Three
+- Two
+- U
+- V
+- W
+- X
+- Y
+- Z
+- Zero
+roboflow:
+  workspace: shikha-tiwari-vrwzs
+  project: yolovssignlanguagedetection
+  version: 2
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/shikha-tiwari-vrwzs/yolovssignlanguagedetection/dataset/2
+path: /content/yolovsSignLanguageDetection.v2i.yolov5pytorch
