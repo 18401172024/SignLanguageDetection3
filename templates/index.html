@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SignSense AI - Real-Time Sign Language Detection</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366f1'><path d='M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v6M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8a6 6 0 0 0 6 6h2a6 6 0 0 0 6-6v-3a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2'/></svg>">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/>
+            <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v6"/>
+            <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8a6 6 0 0 0 6 6h2a6 6 0 0 0 6-6v-3a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>SignSense AI</h1>
+          <p>Real-Time American Sign Language Detection & Translator (YOLOv5)</p>
+        </div>
+      </div>
+
+      <div class="header-status">
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          <span>YOLOv5s Active • 36 Classes</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="tabs-nav">
+      <button class="tab-btn active" data-tab="tab-live">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        Real-Time Detection
+      </button>
+      <button class="tab-btn" data-tab="tab-upload">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Image Upload & Analysis
+      </button>
+      <button class="tab-btn" data-tab="tab-metrics">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Model Metrics & Sign Guide
+      </button>
+    </nav>
+
+    <!-- TAB 1: Real-Time Detection -->
+    <section id="tab-live" class="tab-content active">
+      <div class="live-grid">
+        <!-- Left: Video Viewport & Controls -->
+        <div class="glass-card">
+          <div class="card-title">
+            <h3>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Live Camera Feed
+            </h3>
+            <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+              <div style="display:flex; align-items:center; gap:0.3rem;">
+                <label for="mode-select" style="font-size:0.75rem; color:var(--text-muted)">Mode:</label>
+                <select id="mode-select" style="background:#1f2937; color:#fff; border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:0.25rem 0.5rem; font-size:0.75rem;">
+                  <option value="browser" selected>Browser Webcam</option>
+                  <option value="server">Server OpenCV Stream</option>
+                </select>
+              </div>
+              <div id="device-select-container" style="display:flex; align-items:center; gap:0.3rem;">
+                <label for="camera-device-select" style="font-size:0.75rem; color:var(--text-muted)">Camera:</label>
+                <select id="camera-device-select" style="background:#1f2937; color:#fff; border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:0.25rem 0.5rem; font-size:0.75rem; max-width:140px;">
+                  <option value="">Default Camera</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="video-viewport">
+            <!-- HUD Overlay -->
+            <div class="hud-overlay">
+              <div class="hud-pill hud-fps">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+                FPS: <span id="hud-fps-val">0</span>
+              </div>
+              <div class="hud-pill hud-latency">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                Latency: <span id="hud-latency-val">0ms</span>
+              </div>
+              <div class="hud-pill hud-detects">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/></svg>
+                Detected: <span id="hud-count-val">0</span>
+              </div>
+            </div>
+
+            <!-- Video elements -->
+            <video id="webcam-video" class="mirror d-none" playsinline autoplay muted></video>
+            <canvas id="canvas-output" class="mirror d-none"></canvas>
+            <img id="server-video-feed" class="d-none" alt="Server Video Feed">
+
+            <!-- Focus Guide Box -->
+            <div id="focus-guide" class="focus-guide-box d-none">
+              <span class="focus-guide-label">✋ Center Hand Inside Box</span>
+            </div>
+
+            <!-- Standby Placeholder -->
+            <div id="camera-placeholder" class="camera-placeholder">
+              <div class="placeholder-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+              </div>
+              <div>
+                <h4 style="font-size:1.1rem; color:#fff; margin-bottom:0.25rem;">Camera is Inactive</h4>
+                <p style="font-size:0.85rem;">Click "Start Detection" below to begin real-time gesture recognition.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Video Controls Toolbar -->
+          <div class="toolbar">
+            <button id="btn-start-camera" class="btn btn-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Start Real-Time Detection
+            </button>
+            <button id="btn-stop-camera" class="btn btn-danger d-none">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
+              Stop Detection
+            </button>
+            <button id="btn-toggle-focus" class="btn btn-secondary" title="Crops central hand region to match training dataset scale">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="4.93" y1="4.93" x2="9.17" y2="9.17"/><line x1="14.83" y1="14.83" x2="19.07" y2="19.07"/><line x1="14.83" y1="9.17" x2="19.07" y2="4.93"/><line x1="4.93" y1="19.07" x2="9.17" y2="14.83"/></svg>
+              Hand Focus: <span id="focus-status" style="color:var(--accent-cyan); font-weight:700;">ON</span>
+            </button>
+            <button id="btn-flip-camera" class="btn btn-secondary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+              Mirror Flip
+            </button>
+            <button id="btn-snapshot" class="btn btn-secondary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              Snapshot
+            </button>
+          </div>
+
+          <!-- Sliders -->
+          <div class="settings-strip">
+            <div class="slider-group">
+              <div class="slider-label">
+                <span>Confidence Threshold</span>
+                <span id="conf-val">45%</span>
+              </div>
+              <input type="range" id="conf-slider" class="slider-input" min="0.10" max="0.95" step="0.05" value="0.45">
+            </div>
+            <div class="slider-group">
+              <div class="slider-label">
+                <span>IoU / NMS Threshold</span>
+                <span id="iou-val">45%</span>
+              </div>
+              <input type="range" id="iou-slider" class="slider-input" min="0.10" max="0.95" step="0.05" value="0.45">
+            </div>
+          </div>
+
+          <!-- Educational Diagnostic Banner -->
+          <div style="background:rgba(6, 182, 212, 0.08); border:1px solid rgba(6, 182, 212, 0.25); border-radius:var(--radius-md); padding:0.75rem 1rem; margin-top:1.25rem; font-size:0.8rem; color:var(--text-muted); display:flex; align-items:flex-start; gap:0.6rem;">
+            <span style="font-size:1.1rem; line-height:1;">💡</span>
+            <div>
+              <strong style="color:#fff;">Detection Accuracy Tip:</strong> The model was trained on <em>hands closely cropped against dark backgrounds</em>. If you see false 'C' or '0' detections:
+              <ul style="margin-top:0.25rem; margin-left:1.2rem; line-height:1.4;">
+                <li>Keep <strong>Hand Focus Mode ON</strong> and place your hand inside the dashed guide box.</li>
+                <li>Bring your hand closer to the camera so it fills the guide box.</li>
+                <li>Keep the confidence threshold around <strong>45% - 60%</strong>.</li>
+              </ul>
+            </div>
+          </div>
+              </div>
+              <input type="range" id="iou-slider" class="slider-input" min="0.10" max="0.95" step="0.05" value="0.45">
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Live Translation HUD & Sentence Builder -->
+        <div class="glass-card">
+          <div class="card-title">
+            <h3>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Live Sign Translator
+            </h3>
+          </div>
+
+          <!-- Active Recognized Sign Card -->
+          <div class="live-sign-card">
+            <div class="live-sign-badge">Current Recognition</div>
+            <div id="live-sign-text" class="live-sign-display">—</div>
+            <div class="live-sign-conf-bar">
+              <div id="live-sign-conf-fill" class="live-sign-conf-fill"></div>
+            </div>
+            <div id="live-sign-conf-text" class="live-sign-conf-text">Awaiting camera...</div>
+          </div>
+
+          <!-- Sentence / Word Builder -->
+          <div class="sentence-box">
+            <div class="sentence-header">
+              <span>Accumulated Sentence</span>
+              <span style="font-size:0.75rem; color:var(--text-sub);">Hold gesture 0.5s to append</span>
+            </div>
+            <div id="sentence-text" class="sentence-text"></div>
+
+            <div class="sentence-actions">
+              <button id="btn-speak" class="btn btn-primary btn-sm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                Speak
+              </button>
+              <button id="btn-space" class="btn btn-secondary btn-sm">␣ Space</button>
+              <button id="btn-backspace" class="btn btn-secondary btn-sm">⌫ Back</button>
+              <button id="btn-clear" class="btn btn-secondary btn-sm">✕ Clear</button>
+              <button id="btn-copy" class="btn btn-secondary btn-sm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy
+              </button>
+            </div>
+          </div>
+
+          <!-- ASL Practice & Challenge Mode -->
+          <div style="background:rgba(139, 92, 246, 0.08); border:1px solid rgba(139, 92, 246, 0.25); border-radius:var(--radius-md); padding:1rem; margin-bottom:1.25rem;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem;">
+              <span style="font-size:0.85rem; font-weight:700; color:#fff;">🎯 ASL Practice Trainer</span>
+              <button id="btn-toggle-practice" class="btn btn-secondary btn-sm" style="font-size:0.75rem; padding:0.25rem 0.6rem;">Start Trainer</button>
+            </div>
+            <div id="practice-panel" class="d-none">
+              <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(0,0,0,0.3); padding:0.5rem 0.8rem; border-radius:var(--radius-sm); margin-bottom:0.4rem;">
+                <div style="font-size:0.85rem; color:var(--text-muted);">Sign this: <strong id="practice-target" style="font-size:1.4rem; color:var(--accent-cyan); margin-left:0.3rem;">—</strong></div>
+                <div style="font-size:0.85rem; color:var(--text-muted);">Score: <strong id="practice-score" style="color:var(--accent-emerald);">0</strong></div>
+                <button id="btn-skip-practice" class="btn btn-secondary btn-sm" style="font-size:0.7rem; padding:0.15rem 0.45rem;">Skip ➔</button>
+              </div>
+              <div id="practice-feedback" style="font-size:0.8rem; text-align:center; color:var(--text-muted);">Show your hand sign to the camera to score!</div>
+            </div>
+          </div>
+
+          <!-- Timeline Feed -->
+          <div style="margin-top:1rem;">
+            <div style="font-size:0.85rem; font-weight:600; color:var(--text-muted); margin-bottom:0.6rem;">
+              Recognition Activity
+            </div>
+            <div id="recent-feed-list" class="feed-list">
+              <div style="text-align:center; color:var(--text-sub); font-size:0.8rem; padding:1rem;">
+                No signs recognized yet
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: Image Upload & Analysis -->
+    <section id="tab-upload" class="tab-content">
+      <!-- One-click Sample Test Gallery -->
+      <div class="glass-card samples-wrapper">
+        <div class="samples-header">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Quick Test Sample Gallery (Click any sample image below to detect immediately):
+        </div>
+        <div id="samples-scroll" class="samples-scroll">
+          <!-- Dynamically populated sample chips -->
+        </div>
+      </div>
+
+      <div class="upload-grid">
+        <!-- Upload dropzone or settings -->
+        <div class="glass-card">
+          <div class="card-title">
+            <h3>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload Picture
+            </h3>
+          </div>
+
+          <input type="file" id="file-input" accept="image/*" class="d-none">
+
+          <div id="drop-zone" class="drop-zone">
+            <div class="drop-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <div class="drop-text">
+              <h4>Drop an image here or click to browse</h4>
+              <p>Supports JPG, PNG, WEBP • Max 20MB</p>
+            </div>
+          </div>
+
+          <div class="settings-strip" style="margin-top:1.5rem; border-top:none; padding-top:0;">
+            <div class="slider-group">
+              <div class="slider-label">
+                <span>Confidence Threshold</span>
+                <span id="upload-conf-val">35%</span>
+              </div>
+              <input type="range" id="upload-conf-slider" class="slider-input" min="0.10" max="0.95" step="0.05" value="0.35">
+            </div>
+            <div class="slider-group">
+              <div class="slider-label">
+                <span>IoU Threshold</span>
+                <span id="upload-iou-val">45%</span>
+              </div>
+              <input type="range" id="upload-iou-slider" class="slider-input" min="0.10" max="0.95" step="0.05" value="0.45">
+            </div>
+          </div>
+        </div>
+
+        <!-- Detection Results Viewport -->
+        <div class="glass-card">
+          <div class="card-title">
+            <h3>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4"/></svg>
+              Detection Results
+            </h3>
+          </div>
+
+          <div id="upload-results-area" class="d-none">
+            <div class="view-toggle">
+              <button id="btn-view-annotated" class="btn btn-primary btn-sm">Annotated Result</button>
+              <button id="btn-view-original" class="btn btn-secondary btn-sm">Original Image</button>
+              <button id="btn-download-result" class="btn btn-secondary btn-sm" style="margin-left:auto;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download
+              </button>
+              <button id="btn-test-another" class="btn btn-secondary btn-sm">New Test</button>
+            </div>
+
+            <div class="preview-container">
+              <img id="result-annotated" alt="Annotated Detection">
+              <img id="result-original" class="d-none" alt="Original Image">
+            </div>
+
+            <!-- Stats strip -->
+            <div style="display:flex; gap:1.5rem; margin-top:1rem; font-size:0.85rem; color:var(--text-muted);">
+              <div>Latency: <strong id="upload-latency" style="color:var(--accent-cyan)">0 ms</strong></div>
+              <div>Signs Detected: <strong id="upload-count" style="color:var(--accent-emerald)">0</strong></div>
+              <div>Dimensions: <strong id="upload-dim" style="color:#fff">0 × 0</strong></div>
+            </div>
+
+            <!-- Detection Breakdown Table -->
+            <table class="det-table">
+              <thead>
+                <tr>
+                  <th>Class</th>
+                  <th>Confidence</th>
+                  <th>Bounding Box [X1, Y1, X2, Y2]</th>
+                  <th>Box Size</th>
+                </tr>
+              </thead>
+              <tbody id="det-table-body">
+              </tbody>
+            </table>
+          </div>
+
+          <div id="upload-empty-hint" style="text-align:center; color:var(--text-muted); padding:3rem 1rem;">
+            Select an image from the Quick Test Gallery above or upload a photo to see detailed sign language detections.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: Metrics & Sign Guide -->
+    <section id="tab-metrics" class="tab-content">
+      <!-- Architecture Overview Card -->
+      <div class="glass-card" style="margin-bottom:1.5rem;">
+        <div class="card-title">
+          <h3>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Model Architecture & Specifications
+          </h3>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1.25rem;">
+          <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:1rem;">
+            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Architecture</div>
+            <div style="font-size:1.2rem; font-weight:700; color:#fff; margin-top:0.25rem;">YOLOv5s</div>
+            <div style="font-size:0.8rem; color:var(--text-sub);">68 layers, PyTorch</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:1rem;">
+            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Classes</div>
+            <div style="font-size:1.2rem; font-weight:700; color:var(--accent-cyan); margin-top:0.25rem;">36 Classes</div>
+            <div style="font-size:0.8rem; color:var(--text-sub);">Letters A-Z & Digits 0-9</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:1rem;">
+            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Parameters & GFLOPs</div>
+            <div style="font-size:1.2rem; font-weight:700; color:var(--accent-emerald); margin-top:0.25rem;">7.1M • 16.1 GFLOPs</div>
+            <div style="font-size:0.8rem; color:var(--text-sub);">Lightweight & Real-Time</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:1rem;">
+            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Training Duration</div>
+            <div style="font-size:1.2rem; font-weight:700; color:var(--accent-purple); margin-top:0.25rem;">300 Epochs</div>
+            <div style="font-size:0.8rem; color:var(--text-sub);">Trained on Google Colab GPU</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Training Curves Gallery -->
+      <div class="glass-card" style="margin-bottom:1.5rem;">
+        <div class="card-title">
+          <h3>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>
+            Training Results & Evaluation Curves (Click to Zoom)
+          </h3>
+        </div>
+        <div class="metrics-grid">
+          <div class="metric-chart-card">
+            <h4 style="font-size:0.95rem; font-weight:600; color:#fff;">Validation Confusion Matrix</h4>
+            <p style="font-size:0.8rem; color:var(--text-muted);">Class-by-class validation matrix</p>
+            <img src="{{ url_for('static', filename='results/validation/confusion_matrix.png') }}" alt="Validation Confusion Matrix" loading="lazy">
+          </div>
+          <div class="metric-chart-card">
+            <h4 style="font-size:0.95rem; font-weight:600; color:#fff;">Validation F1 Curve</h4>
+            <p style="font-size:0.8rem; color:var(--text-muted);">F1 score vs confidence threshold</p>
+            <img src="{{ url_for('static', filename='results/validation/F1_curve.png') }}" alt="Validation F1 Curve" loading="lazy">
+          </div>
+          <div class="metric-chart-card">
+            <h4 style="font-size:0.95rem; font-weight:600; color:#fff;">Validation Precision-Recall Curve</h4>
+            <p style="font-size:0.8rem; color:var(--text-muted);">Precision-Recall trade-off</p>
+            <img src="{{ url_for('static', filename='results/validation/PR_curve.png') }}" alt="Validation PR Curve" loading="lazy">
+          </div>
+          <div class="metric-chart-card">
+            <h4 style="font-size:0.95rem; font-weight:600; color:#fff;">Test Confusion Matrix</h4>
+            <p style="font-size:0.8rem; color:var(--text-muted);">Independent test set confusion matrix</p>
+            <img src="{{ url_for('static', filename='results/test/confusion_matrix.png') }}" alt="Test Confusion Matrix" loading="lazy">
+          </div>
+          <div class="metric-chart-card">
+            <h4 style="font-size:0.95rem; font-weight:600; color:#fff;">Test PR Curve</h4>
+            <p style="font-size:0.8rem; color:var(--text-muted);">Test set precision-recall curve</p>
+            <img src="{{ url_for('static', filename='results/test/PR_curve.png') }}" alt="Test PR Curve" loading="lazy">
+          </div>
+          <div class="metric-chart-card">
+            <h4 style="font-size:0.95rem; font-weight:600; color:#fff;">Test F1 Curve</h4>
+            <p style="font-size:0.8rem; color:var(--text-muted);">Test set F1 curve</p>
+            <img src="{{ url_for('static', filename='results/test/F1_curve.png') }}" alt="Test F1 Curve" loading="lazy">
+          </div>
+        </div>
+      </div>
+
+      <!-- 36 Sign Language Class Dictionary -->
+      <div class="glass-card">
+        <div class="card-title">
+          <h3>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            Complete 36-Class Sign Dictionary
+          </h3>
+        </div>
+        <input type="text" id="class-search" class="class-search-bar" placeholder="🔍 Search sign (e.g. A, B, Zero, Seven, K)...">
+
+        <div id="class-cards-grid" class="class-cards-grid">
+          {% for c in classes %}
+          <div class="class-guide-chip" data-class-name="{{ c }}" data-img-url="{{ class_thumbnails.get(c, '') }}">
+            {% if c in class_thumbnails %}
+            <img src="{{ class_thumbnails[c] }}" alt="{{ c }}" loading="lazy">
+            {% endif %}
+            <div class="class-guide-name">{{ c }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+
+    <!-- Image Zoom Modal -->
+    <div id="zoom-modal" class="modal-overlay">
+      <div class="modal-content">
+        <button id="modal-close" class="modal-close">&times;</button>
+        <img id="modal-img" src="" alt="Full view">
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
