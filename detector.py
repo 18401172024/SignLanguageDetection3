@@ -48,13 +48,6 @@ def _safe_is_file(self):
         return False
 pathlib.Path.is_file = _safe_is_file
 
-class PathLibLocal:
-    PosixPath = pathlib.WindowsPath
-    WindowsPath = pathlib.WindowsPath
-    Path = pathlib.WindowsPath
-
-sys.modules['pathlib._local'] = PathLibLocal
-
 # Distinct neon/pastel color palette for 36 classes (BGR for OpenCV)
 CLASS_COLORS = [
     (255, 99, 132),   # A
