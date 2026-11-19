@@ -21,7 +21,7 @@ os.makedirs(os.environ["YOLO_CONFIG_DIR"], exist_ok=True)
 os.makedirs(os.environ["MPLCONFIGDIR"], exist_ok=True)
 
 # Fix Windows/Linux PosixPath cross-deserialization issue
-pathlib.PosixPath = pathlib.WindowsPath
+pathlib.WindowsPath = pathlib.PosixPath
 
 # Safely handle any restricted permission checks during imports
 _orig_exists = pathlib.Path.exists
